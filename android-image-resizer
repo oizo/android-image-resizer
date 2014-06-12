@@ -16,29 +16,34 @@ if [[ "" == "$PKG_OK" ]]; then
 	die "Inkscape in needed, please run: sudo apt-get install inkscape"
 fi
 
+# check a folder
+check_folder() {
+	if [[ ! -e $1 ]]; then
+		mkdir -p $1
+	elif [[ ! -d $1 ]]; then
+		die "$1 is not a folder... please check it"
+	fi
+}
+
 base_width=$1
 input_file=$2
 output_file=$3
+
+svg2png () {
+	resource_width=$(echo $base_width*$1 | bc)
+	resource_folder=$2
+	check_folder $resource_folder
+	inkscape -z -w $resource_width -e $resource_folder/$output_file $input_file > /dev/null 2>&1
+}
 
 # The needed android resource sizes
 dpi=(0.75 1 1.5 2 3 4)
 
 # The folders matching the resource sizes
-folder=( 'ldpi' 'mdpi' 'hdpi' 'xhdpi' 'xxhdpi' 'xxxhdpi')
-
-svg2png () {
-	resource_width=$(echo $base_width*${dpi[$1]} | bc)
-	resource_folder=${folder[$1]}
-	if [[ ! -e $resource_folder ]]; then
-		mkdir -p $resource_folder
-	elif [[ ! -d $resource_folder ]]; then
-		die "$resource_folder is not a folder... please check it"
-	fi
-	inkscape -z -w $resource_width -e $resource_folder/$output_file $input_file > /dev/null 2>&1
-}
+res_folders=( 'ldpi' 'mdpi' 'hdpi' 'xhdpi' 'xxhdpi' 'xxxhdpi')
 
 total=${#dpi[*]}
 
 for (( i=0; i<=$(( $total -1 )); i++ )); do
-	svg2png $i
+	svg2png ${dpi[$i]} ${res_folders[$i]}
 done
