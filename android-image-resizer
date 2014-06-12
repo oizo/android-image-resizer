@@ -1,0 +1,44 @@
+#! /bin/bash
+
+die () {
+	echo >&2 "$@"
+	exit 1
+}
+
+# Checking arguments
+if [[ -z "$1" || -z "$2" || -z "$3" ]]; then
+	die "Usage: `basename $0` width input.svg output.png"
+fi
+
+# checking for inkscape
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' inkscape|grep "install ok installed")
+if [[ "" == "$PKG_OK" ]]; then
+	die "Inkscape in needed, please run: sudo apt-get install inkscape"
+fi
+
+SIZE=$1
+INPUT=$2
+OUTPUT=$3
+
+# The needed android resource sizes
+dpi=(0.75 1 1.5 2 3 4)
+
+# The folders matching the resource sizes
+folder=( 'ldpi' 'mdpi' 'hdpi' 'xhdpi' 'xxhdpi' 'xxxhdpi')
+
+process() {
+	WIDTH=$(echo $SIZE*${dpi[$1]} | bc)
+	FOLDER=${folder[$1]}
+	if [[ ! -e $FOLDER ]]; then
+		mkdir -p $FOLDER
+	elif [[ ! -d $FOLDER ]]; then
+		die "$FOLDER is not a folder... please check it"
+	fi
+	inkscape -z -w $WIDTH -e $FOLDER/$OUTPUT $INPUT > /dev/null 2>&1
+}
+
+total=${#dpi[*]}
+
+for (( i=0; i<=$(( $total -1 )); i++ )); do
+	process $i
+done
